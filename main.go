@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/antchfx/htmlquery"
 	"gorm.io/driver/sqlite"
@@ -27,7 +28,7 @@ func main() {
 		panic("failed to connect database")
 	}
 	db.AutoMigrate(&DBrequests{})
-	// scrubbLinks(db)
+	scrubbLinks(db)
 	scrubbSaleAds(db)
 }
 
@@ -55,27 +56,27 @@ func scrubbSaleAds(db *gorm.DB) {
 	allRequests := make([]DBrequests, 0, 2)
 	db.Find(&allRequests)
 	println("len allRequests:", len(allRequests))
-	// fmt.Printf("%+v\n", allRequests)
 
-	for _, request := range allRequests {
+	for i0, request := range allRequests {
 		if request.statusReaded == false {
 			doc, err := htmlquery.LoadURL(request.URL)
 			println("name:", request.Name)
 			println("requestURL:", request.URL)
-			list := htmlquery.Find(doc, "//div/img/src")
-			for i, r := range list {
+			println("statusReaded:", request.statusReaded)
+			list := htmlquery.Find(doc, "//div/img")
+
+			for i1, r := range list {
 				img := htmlquery.FindOne(r, "//img")
 				link := htmlquery.SelectAttr(img, "src")
 				println("linkIMG:", link)
-				err = downloadFile(request.Name, link)
-				// name := htmlquery.InnerText(a)
-				// fmt.Printf("%d %s(%s)\n", i, link)
-				println("порядковий номер в list:", i)
+				nameIMG := strconv.Itoa(i0) + "_" + strconv.Itoa(i1) + ".jpg"
+				err = downloadFile(link, nameIMG)
+				println(nameIMG)
 			}
 
 			// set status readed if no errors
 			if err == nil {
-				// request.statusReaded = true
+				request.statusReaded = true
 			}
 
 		}
@@ -108,5 +109,5 @@ func downloadFile(URL, fileName string) error {
 		return err
 	}
 
-	return nil
+	return err
 }
